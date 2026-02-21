@@ -6,7 +6,7 @@
 
   # 1. Load variables from our separate config file
   vars_files:
-    - config.yml
+    - configs/regular.yml
 
   vars:
     systemd_user_dir: "{{ ansible_env.HOME }}/.config/systemd/user"
@@ -25,6 +25,42 @@
         path: "{{ systemd_user_dir }}"
         state: directory
 
+    - name: Assert task_prefix is non-empty
+      ansible.builtin.assert:
+        that:
+          - task_prefix is string
+          - task_prefix | trim | length > 0
+        fail_msg: "task_prefix must be a non-empty string."
+
+    - name: Validate scheduled task commands
+      ansible.builtin.assert:
+        that:
+          - item.command is string
+          - item.command | trim | length > 0
+          - (item.use_shell | default(false)) or (item.command is match("^[^|&;<>()$`]+$"))
+        fail_msg: "Non-shell command contains shell syntax. Set use_shell: true if intentional."
+      loop: "{{ scheduled_tasks }}"
+
+    - name: Validate scheduled task timer config
+      ansible.builtin.assert:
+        that:
+          - not (item.schedule is defined and item.timer is defined)
+          - item.schedule is defined or item.timer is defined
+          - item.schedule is not defined or item.schedule | trim | length > 0
+          - item.timer is not defined or item.timer is mapping
+          - >-
+            item.timer is not defined or
+            item.timer.on_calendar is defined or
+            item.timer.on_boot_sec is defined or
+            item.timer.on_unit_active_sec is defined or
+            item.timer.on_unit_inactive_sec is defined
+          - item.timer is not defined or item.timer.on_calendar is not defined or item.timer.on_calendar | trim | length > 0
+        fail_msg: >-
+          Invalid timer config for '{{ item.name }}'.
+          Ensure you are not using 'schedule' and 'timer' together.
+          If using 'timer', ensure at least one trigger (e.g., on_calendar, on_boot_sec) is defined.
+      loop: "{{ scheduled_tasks }}"
+
     - name: Generate systemd services
       ansible.builtin.copy:
         dest: "{{ systemd_user_dir }}/{{ task_prefix }}{{ item.name }}.service"
@@ -33,8 +69,13 @@
           Description={{ item.name }}
           [Service]
           Type=oneshot
+          {% if item.use_shell | default(false) %}
+          ExecStart=/bin/bash -lc {{ item.command | quote }}
+          {% else %}
           ExecStart={{ item.command }}
+          {% endif %}
       loop: "{{ scheduled_tasks }}"
+      notify: Reload Systemd User
 
     - name: Generate systemd timers
       ansible.builtin.copy:
@@ -43,8 +84,24 @@
           [Unit]
           Description={{ item.name }} timer
           [Timer]
+          {% if item.timer is defined and item.timer.on_calendar is defined %}
+          OnCalendar={{ item.timer.on_calendar }}
+          {% elif item.schedule is defined %}
           OnCalendar={{ item.schedule }}
-          Persistent=true
+          {% endif %}
+          {% if item.timer is defined and item.timer.on_boot_sec is defined %}
+          OnBootSec={{ item.timer.on_boot_sec }}
+          {% endif %}
+          {% if item.timer is defined and item.timer.on_unit_active_sec is defined %}
+          OnUnitActiveSec={{ item.timer.on_unit_active_sec }}
+          {% endif %}
+          {% if item.timer is defined and item.timer.on_unit_inactive_sec is defined %}
+          OnUnitInactiveSec={{ item.timer.on_unit_inactive_sec }}
+          {% endif %}
+          {% if item.timer is defined and item.timer.randomized_delay_sec is defined %}
+          RandomizedDelaySec={{ item.timer.randomized_delay_sec }}
+          {% endif %}
+          Persistent={{ item.timer.persistent | default(true) | ternary('true', 'false') if item.timer is defined else 'true' }}
           [Install]
           WantedBy=timers.target
       loop: "{{ scheduled_tasks }}"
@@ -68,7 +125,7 @@
         enabled: false
         scope: user
       loop: "{{ orphans }}"
-      when: "item.endswith('.timer')"
+      when: item.endswith('.timer')
 
     - name: Delete orphaned systemd files
       ansible.builtin.file:
@@ -76,6 +133,9 @@
         state: absent
       loop: "{{ orphans }}"
       notify: Reload Systemd User
+
+    - name: Flush handlers before enabling timers
+      ansible.builtin.meta: flush_handlers
 
     - name: Enable and start desired timers
       ansible.builtin.systemd:
