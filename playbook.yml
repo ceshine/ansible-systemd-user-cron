@@ -1,0 +1,92 @@
+---
+- name: Manage Scheduled Tasks
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  # 1. Load variables from our separate config file
+  vars_files:
+    - config.yml
+
+  vars:
+    systemd_user_dir: "{{ ansible_env.HOME }}/.config/systemd/user"
+
+    # Generate the expected file names dynamically using the task_prefix
+    # The '~' operator in Jinja2 connects strings together
+    expected_files: >-
+      {{
+        (scheduled_tasks | map(attribute='name') | map('regex_replace', '^(.*)$', task_prefix ~ '\1.service') | list) +
+        (scheduled_tasks | map(attribute='name') | map('regex_replace', '^(.*)$', task_prefix ~ '\1.timer') | list)
+      }}
+
+  tasks:
+    - name: Ensure systemd user directory exists
+      ansible.builtin.file:
+        path: "{{ systemd_user_dir }}"
+        state: directory
+
+    - name: Generate systemd services
+      ansible.builtin.copy:
+        dest: "{{ systemd_user_dir }}/{{ task_prefix }}{{ item.name }}.service"
+        content: |
+          [Unit]
+          Description={{ item.name }}
+          [Service]
+          Type=oneshot
+          ExecStart={{ item.command }}
+      loop: "{{ scheduled_tasks }}"
+
+    - name: Generate systemd timers
+      ansible.builtin.copy:
+        dest: "{{ systemd_user_dir }}/{{ task_prefix }}{{ item.name }}.timer"
+        content: |
+          [Unit]
+          Description={{ item.name }} timer
+          [Timer]
+          OnCalendar={{ item.schedule }}
+          Persistent=true
+          [Install]
+          WantedBy=timers.target
+      loop: "{{ scheduled_tasks }}"
+      notify: Reload Systemd User
+
+    # 2. Use the task_prefix to find existing managed files
+    - name: Find existing managed systemd files
+      ansible.builtin.find:
+        paths: "{{ systemd_user_dir }}"
+        patterns: "{{ task_prefix }}*"
+      register: found_files
+
+    - name: Identify orphaned files
+      ansible.builtin.set_fact:
+        orphans: "{{ found_files.files | map(attribute='path') | map('basename') | difference(expected_files) }}"
+
+    - name: Stop and disable orphaned timers
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+        scope: user
+      loop: "{{ orphans }}"
+      when: "item.endswith('.timer')"
+
+    - name: Delete orphaned systemd files
+      ansible.builtin.file:
+        path: "{{ systemd_user_dir }}/{{ item }}"
+        state: absent
+      loop: "{{ orphans }}"
+      notify: Reload Systemd User
+
+    - name: Enable and start desired timers
+      ansible.builtin.systemd:
+        name: "{{ task_prefix }}{{ item.name }}.timer"
+        state: started
+        enabled: true
+        scope: user
+      loop: "{{ scheduled_tasks }}"
+
+  handlers:
+    - name: Reload Systemd User
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
