@@ -1,0 +1,23 @@
+[Unit]
+Description={{ item.name }} timer
+[Timer]
+{% if item.timer is defined and item.timer.on_calendar is defined %}
+OnCalendar={{ item.timer.on_calendar }}
+{% elif item.schedule is defined %}
+OnCalendar={{ item.schedule }}
+{% endif %}
+{% if item.timer is defined and item.timer.on_boot_sec is defined %}
+OnBootSec={{ item.timer.on_boot_sec }}
+{% endif %}
+{% if item.timer is defined and item.timer.on_unit_active_sec is defined %}
+OnUnitActiveSec={{ item.timer.on_unit_active_sec }}
+{% endif %}
+{% if item.timer is defined and item.timer.on_unit_inactive_sec is defined %}
+OnUnitInactiveSec={{ item.timer.on_unit_inactive_sec }}
+{% endif %}
+{% if item.timer is defined and item.timer.randomized_delay_sec is defined %}
+RandomizedDelaySec={{ item.timer.randomized_delay_sec }}
+{% endif %}
+Persistent={{ item.timer.persistent | default(true) | ternary('true', 'false') if item.timer is defined else 'true' }}
+[Install]
+WantedBy=timers.target

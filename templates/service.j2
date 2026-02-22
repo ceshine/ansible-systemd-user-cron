@@ -1,0 +1,9 @@
+[Unit]
+Description={{ item.name }}
+[Service]
+Type=oneshot
+{% if item.use_shell | default(false) %}
+ExecStart=/bin/bash -lc {{ item.command | quote }}
+{% else %}
+ExecStart={{ item.command }}
+{% endif %}
