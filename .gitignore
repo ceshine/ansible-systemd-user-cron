@@ -1,1 +1,6 @@
 configs
+cache
+.gemini
+.codex
+opencode.json
+.claude
