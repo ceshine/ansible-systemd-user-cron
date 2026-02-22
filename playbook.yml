@@ -37,8 +37,13 @@
         that:
           - item.command is string
           - item.command | trim | length > 0
+          - item.working_directory is not defined or item.working_directory is string
+          - item.working_directory is not defined or item.working_directory | trim | length > 0
           - (item.use_shell | default(false)) or (item.command is match("^[^|&;<>()$`]+$"))
-        fail_msg: "Non-shell command contains shell syntax. Set use_shell: true if intentional."
+        fail_msg: >-
+          Invalid command or working_directory for '{{ item.name }}'.
+          Non-shell command contains shell syntax, or working_directory is not a non-empty string.
+          Set use_shell: true if shell syntax is intentional.
       loop: "{{ scheduled_tasks }}"
 
     - name: Validate scheduled task timer config
@@ -75,7 +80,6 @@
       loop: "{{ scheduled_tasks }}"
       notify: Reload Systemd User
 
-    # 2. Use the task_prefix to find existing managed files
     - name: Find existing managed systemd files
       ansible.builtin.find:
         paths: "{{ systemd_user_dir }}"

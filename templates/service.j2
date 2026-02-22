@@ -1,9 +1,18 @@
 [Unit]
 Description={{ item.name }}
+Wants=network-online.target
+After=network-online.target
+
 [Service]
 Type=oneshot
+{% if item.working_directory is defined %}
+WorkingDirectory={{ item.working_directory }}
+{% endif %}
 {% if item.use_shell | default(false) %}
 ExecStart=/bin/bash -lc {{ item.command | quote }}
 {% else %}
 ExecStart={{ item.command }}
 {% endif %}
+
+[Install]
+WantedBy=default.target # Use default.target for user services

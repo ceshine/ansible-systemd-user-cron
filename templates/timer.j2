@@ -1,5 +1,6 @@
 [Unit]
 Description={{ item.name }} timer
+
 [Timer]
 {% if item.timer is defined and item.timer.on_calendar is defined %}
 OnCalendar={{ item.timer.on_calendar }}
@@ -17,7 +18,15 @@ OnUnitInactiveSec={{ item.timer.on_unit_inactive_sec }}
 {% endif %}
 {% if item.timer is defined and item.timer.randomized_delay_sec is defined %}
 RandomizedDelaySec={{ item.timer.randomized_delay_sec }}
+{% else %}
+RandomizedDelaySec=30
 {% endif %}
-Persistent={{ item.timer.persistent | default(true) | ternary('true', 'false') if item.timer is defined else 'true' }}
+{# Default Persistent=true to ensure missed runs are caught up after downtime #}
+{% if item.timer is defined and item.timer.persistent is defined %}
+Persistent={{ item.timer.persistent | ternary('yes', 'no') }}
+{% else %}
+Persistent=yes
+{% endif %}
+
 [Install]
 WantedBy=timers.target
