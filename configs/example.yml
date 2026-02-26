@@ -1,0 +1,38 @@
+---
+# Required: non-empty prefix used for generated .service/.timer files.
+task_prefix: "example-"
+
+# Required: list of task definitions.
+scheduled_tasks:
+  # Example 1: Basic OnCalendar schedule via `schedule`.
+  - name: daily-report
+    command: /usr/local/bin/generate_daily_report --output /tmp/daily-report.txt
+    schedule: "daily"
+
+  # Example 2: `schedule` + optional working directory.
+  - name: refresh-index
+    working_directory: /home/user/projects/search-indexer
+    command: /home/user/.local/bin/uv run python refresh_index.py
+    schedule: "*-*-* 03:15:00"
+
+  # Example 3: Shell command enabled with `use_shell: true`.
+  - name: sync-remote-docs
+    command: /home/user/bin/rclone sync E-pCloud:/Documents /mnt/backup/Documents 2>> /home/user/logs/rclone.err.log
+    schedule: "*-*-* 12,16,21:05"
+    use_shell: true
+
+  # Example 4: Explicit `timer` map with OnCalendar trigger and overrides.
+  - name: cleanup-cache
+    command: /usr/local/bin/cleanup_cache --older-than-days 14
+    timer:
+      on_calendar: "Mon..Fri 02:30"
+      randomized_delay_sec: 45
+      persistent: false
+
+  # Example 5: Monotonic timer triggers (no `schedule` key).
+  - name: backup-research-notes
+    command: /home/user/scripts/backup_research_notes.sh
+    timer:
+      on_boot_sec: 240
+      on_unit_active_sec: 7200
+      on_unit_inactive_sec: 1800
