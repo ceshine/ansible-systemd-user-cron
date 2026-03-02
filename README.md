@@ -25,6 +25,8 @@ This repository lets you declare all periodic tasks in YAML files, render them i
 
 - Syntax check: `uvx --from ansible-core ansible-playbook --syntax-check playbook.yml`
 - Dry run: `uvx --from ansible-core ansible-playbook --check --diff playbook.yml`
+  - `--check` simulates changes without modifying the system
+  - `--diff` shows the differences between current and proposed state
 - Refresh the systemd units: `uvx --from ansible-core ansible-playbook playbook.yml`
 
 ## Configuring Scheduled Tasks
@@ -85,6 +87,12 @@ Use the `timer` dictionary for more granular control. At least one trigger (e.g.
   - `uvx --from ansible-core ansible-playbook -e @configs/base.yml -e @configs/work.yml playbook.yml`
 - Combine files with direct overrides:
   - `uvx --from ansible-core ansible-playbook -e @configs/work.yml -e 'task_prefix=dev-' playbook.yml`
+
+## Useful Commands
+
+- `systemctl list-timers --user`: List all timers under the current user.
+- `systemd status your-job.timer`: Check the status of a specific timer.
+- `journalctl --user -u your-job.service`: View execution logs for a specific service.
 
 ## Implementation Details
 
