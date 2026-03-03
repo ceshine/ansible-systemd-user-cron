@@ -8,6 +8,11 @@ Type=oneshot
 {% if item.working_directory is defined %}
 WorkingDirectory={{ item.working_directory }}
 {% endif %}
+{% if item.environment is defined %}
+{% for env_item in item.environment | dict2items | sort(attribute='key') %}
+Environment={{ (env_item.key ~ '=' ~ (env_item.value | string)) | to_json }}
+{% endfor %}
+{% endif %}
 {% if item.use_shell | default(false) %}
 ExecStart=/bin/bash -lc {{ item.command | quote }}
 {% else %}

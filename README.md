@@ -54,6 +54,7 @@ Each item in `scheduled_tasks` supports the following:
 | `name` | string | **Yes** | Unique identifier for the task (appended to `task_prefix`). |
 | `command` | string | **Yes** | The command to execute. |
 | `working_directory` | string | No | Directory to execute the command in. |
+| `environment` | map | No | Environment variables added to the service as `Environment=` entries. |
 | `use_shell` | boolean | No | If `true`, runs command in a shell (`/bin/bash -lc`). Default: `false`. |
 
 #### Scheduling

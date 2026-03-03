@@ -13,6 +13,9 @@ scheduled_tasks:
   - name: refresh-index
     working_directory: /home/user/projects/search-indexer
     command: /home/user/.local/bin/uv run python refresh_index.py
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: info
     schedule: "*-*-* 03:15:00"
 
   # Example 3: Shell command enabled with `use_shell: true`.
