@@ -16,7 +16,9 @@ OnUnitActiveSec={{ item.timer.on_unit_active_sec }}
 {% if item.timer is defined and item.timer.on_unit_inactive_sec is defined %}
 OnUnitInactiveSec={{ item.timer.on_unit_inactive_sec }}
 {% endif %}
-{% if item.timer is defined and item.timer.randomized_delay_sec is defined %}
+{% if item.randomized_delay_sec is defined %}
+RandomizedDelaySec={{ item.randomized_delay_sec }}
+{% elif item.timer is defined and item.timer.randomized_delay_sec is defined %}
 RandomizedDelaySec={{ item.timer.randomized_delay_sec }}
 {% else %}
 RandomizedDelaySec=30

@@ -83,10 +83,12 @@
             item.timer.on_unit_active_sec is defined or
             item.timer.on_unit_inactive_sec is defined
           - item.timer is not defined or item.timer.on_calendar is not defined or item.timer.on_calendar | trim | length > 0
+          - not (item.randomized_delay_sec is defined and item.timer is defined and item.timer.randomized_delay_sec is defined)
         fail_msg: >-
           Invalid timer config for '{{ item.name }}'.
           Ensure you are not using 'schedule' and 'timer' together.
           If using 'timer', ensure at least one trigger (e.g., on_calendar, on_boot_sec) is defined.
+          Do not set 'randomized_delay_sec' at both root and timer levels.
       loop: "{{ scheduled_tasks }}"
 
     - name: Generate systemd services
