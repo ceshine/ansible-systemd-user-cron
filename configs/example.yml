@@ -29,8 +29,8 @@ scheduled_tasks:
     command: /usr/local/bin/cleanup_cache --older-than-days 14
     timer:
       on_calendar: "Mon..Fri 02:30"
-      randomized_delay_sec: 45
       persistent: false
+    randomized_delay_sec: 45
 
   # Example 5: Monotonic timer triggers (no `schedule` key).
   - name: backup-research-notes
