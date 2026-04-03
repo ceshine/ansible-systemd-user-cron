@@ -2,6 +2,10 @@
 Description={{ item.name }}
 Wants=network-online.target
 After=network-online.target
+{% if item.requires_graphical_session | default(false) %}
+Wants=graphical-session.target
+After=graphical-session.target
+{% endif %}
 
 [Service]
 Type=oneshot

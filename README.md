@@ -56,6 +56,7 @@ Each item in `scheduled_tasks` supports the following:
 | `working_directory` | string | No | Directory to execute the command in. |
 | `environment` | map | No | Environment variables added to the service as `Environment=` entries. |
 | `use_shell` | boolean | No | If `true`, runs command in a shell (`/bin/bash -lc`). Default: `false`. |
+| `requires_graphical_session` | boolean | No | If `true`, the service waits for `graphical-session.target` before starting. Useful for tasks that depend on the user keyring (e.g., Doppler, GNOME Keyring). Default: `false`. |
 
 #### Scheduling
 
